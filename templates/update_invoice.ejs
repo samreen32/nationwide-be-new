@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Repair Workorder Update</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+      }
+      .invoice {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        border: 1px solid #ccc;
+      }
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 15px;
+      }
+      .header img {
+        max-width: 120px;
+      }
+      .header h1 {
+        flex-grow: 1;
+        text-align: center;
+        margin-left: 125px;
+      }
+      .details {
+        margin-bottom: 20px;
+      }
+      .details table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .details th,
+      .details td {
+        border: 1px solid #ccc;
+        padding: 10px;
+        text-align: left;
+      }
+      .footer {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 0.9em;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="invoice">
+      <div class="header">
+        <img
+          src="https://res.cloudinary.com/drgrcajhq/image/upload/v1740120446/usdigitalmarketing-folder/dngqzyfhadykfxnrjiun.png"
+          alt="logo image"
+        />
+        <h1>Repair Workorder Update # <br /><%= workOrderNumber %></h1>
+      </div>
+      <p style="text-align: center">Date: <%= currentDate %></p>
+      <% if (status === 'received') { %>
+      <p style="text-align: center">
+        We have received your laptop and will get back to you soon.
+      </p>
+      <% } else if (status === 'ship') { %>
+      <p style="text-align: center">
+        We shipped your laptop. It will be there in a few days.
+      </p>
+      <% } else if (status === 'completed') { %>
+      <p style="text-align: center">
+        Thank you for using our services. Stay in touch for more easy repairs.
+      </p>
+      <% } else { %>
+      <p style="text-align: center">
+        Your repair request has been updated. Please find the details below.
+      </p>
+      <% } %>
+      <div class="details">
+        <h2>Customer Details</h2>
+        <table>
+          <tr>
+            <th>Name</th>
+            <td><%= user.firstname %> <%= user.lastname %></td>
+          </tr>
+          <tr>
+            <th>Email</th>
+            <td><%= user.email %></td>
+          </tr>
+          <tr>
+            <th>Phone</th>
+            <td><%= user.phone %></td>
+          </tr>
+          <tr>
+            <th>Address</th>
+            <td>
+              <%= user.address %>, <%= user.city %>, <%= user.state %>, <%=
+              user.zip %>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div class="details">
+        <h2>Repair Details</h2>
+        <table>
+          <tr>
+            <th>Model</th>
+            <td><%= repair.model %></td>
+          </tr>
+          <tr>
+            <th>Serial Number</th>
+            <td><%= repair.serialNum %></td>
+          </tr>
+          <tr>
+            <th>Description</th>
+            <td><%= repair.description %></td>
+          </tr>
+        </table>
+      </div>
+      <div class="footer">
+        <p>
+          If you have any questions, please contact us at
+          support@nationwidelaptoprepair.com or call us at 702-955-8585.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
