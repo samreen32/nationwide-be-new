@@ -6,32 +6,8 @@ require("dotenv").config();
 connectToMongo();
 
 const app = express();
-const port = 5000;
-
-// Handle OPTIONS requests first
-app.options("*", (req, res) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, DELETE, PATCH, OPTIONS"
-  );
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Requested-With"
-  );
-  res.status(200).send();
-});
-
-// Apply CORS middleware
-app.use(
-  cors({
-    origin: "*",
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  })
-);
-
+const port = process.env.PORT || 5000;
+app.use(cors());
 app.use(express.json());
 
 // Available Routes
