@@ -5,27 +5,13 @@ const ejs = require("ejs");
 const path = require("path");
 require("dotenv").config();
 
-// const transporter = nodemailer.createTransport({
-//   host: "smtpout.secureserver.net",
-//   port: 465,
-//   secure: true,
-//   auth: {
-//     user: "support@nationwidelaptoprepair.com",
-//     pass: "SupportAt2802$$##%%twomonkies",
-//   },
-// });
-
 const transporter = nodemailer.createTransport({
-  host: 'smtp.office365.com', // GoDaddy now uses Outlook servers
-  port: 587,
-  secure: false, // Use TLS
+  host: "smtpout.secureserver.net",
+  port: 465,
+  secure: true,
   auth: {
-    user: 'support@nationwidelaptoprepair.com',
-    pass: "SupportAt2802$$##%%twomonkies", // Store password in env variable
-  },
-  tls: {
-    ciphers: 'SSLv3',
-    rejectUnauthorized: false, // This might help with certificate issues
+    user: "support@nationwidelaptoprepair.com",
+    pass: "SupportAt2802$$##%%twomonkies",
   },
 });
 
