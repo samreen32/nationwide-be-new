@@ -3,10 +3,15 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
+// const Parse = require('parse/node');
+// Parse.initialize("62d0TWpBbBq0GuNVOiND0ud5DDlkVBHtLSutjIgV", "q0gU9474SnvzPf41nhR6p7a9i0gftg3G62CyEk1N");
+// Parse.serverURL = 'https://parseapi.back4app.com';
+
+
 connectToMongo();
 
 const app = express();
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json());
 
