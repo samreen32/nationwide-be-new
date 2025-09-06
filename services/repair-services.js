@@ -5,15 +5,50 @@ const ejs = require("ejs");
 const path = require("path");
 require("dotenv").config();
 
-const transporter = nodemailer.createTransport({
-  host: "smtpout.secureserver.net",
-  port: 465,
-  secure: true,
+// Email configuration - UPDATE THESE VALUES
+const emailConfig = {
+  host: process.env.EMAIL_HOST,
+  port: process.env.EMAIL_PORT,
+  secure: process.env.EMAIL_SECURE !== "false",
   auth: {
-    user: "support@nationwidelaptoprepair.com",
-    pass: "SupportAt2802$$##%%twomonkies",
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
-});
+  tls: {
+    rejectUnauthorized: false,
+  },
+};
+
+const transporter = nodemailer.createTransport(emailConfig);
+
+// Test SMTP connection
+async function testSMTPConnection() {
+  try {
+    await transporter.verify();
+    console.log("SMTP connection verified successfully");
+    return true;
+  } catch (error) {
+    console.error("SMTP connection failed:", error.message);
+
+    // Provide specific troubleshooting advice based on error
+    if (error.code === "EAUTH") {
+      console.error("Authentication failed. Please check:");
+      console.error("1. Your email username and password in .env file");
+      console.error("2. That your email account is active and not locked");
+      console.error("3. If you need to use an app-specific password");
+    } else if (error.code === "ECONNECTION") {
+      console.error("Connection failed. Please check:");
+      console.error("1. Your SMTP host and port settings");
+      console.error("2. Your internet connection");
+      console.error("3. Firewall settings that might block SMTP");
+    }
+
+    return false;
+  }
+}
+
+// Initialize and test connection
+testSMTPConnection();
 
 async function generateWorkOrderNumber(state) {
   const now = new Date();
