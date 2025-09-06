@@ -5,19 +5,32 @@ const ejs = require("ejs");
 const path = require("path");
 require("dotenv").config();
 
+console.log("Environment variables:");
+console.log("EMAIL_HOST:", process.env.EMAIL_HOST);
+console.log("EMAIL_PORT:", process.env.EMAIL_PORT);
+console.log("EMAIL_USER:", process.env.EMAIL_USER);
+
 // Email configuration - UPDATE THESE VALUES
 const emailConfig = {
-  host: process.env.EMAIL_HOST,
-  port: process.env.EMAIL_PORT,
-  secure: process.env.EMAIL_SECURE !== "false",
+  host: process.env.EMAIL_HOST || "smtp.office365.com",
+  port: parseInt(process.env.EMAIL_PORT) || 587,
+  secure: process.env.EMAIL_SECURE === "true",
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: process.env.EMAIL_USER || "support@nationwidelaptoprepair.com",
+    pass: process.env.EMAIL_PASS || "SupportAt2802$",
   },
   tls: {
+    ciphers: process.env.EMAIL_CIPHERS || "SSLv3",
     rejectUnauthorized: false,
   },
 };
+
+console.log("Final email configuration:", {
+  host: emailConfig.host,
+  port: emailConfig.port,
+  secure: emailConfig.secure,
+  user: emailConfig.auth.user,
+});
 
 const transporter = nodemailer.createTransport(emailConfig);
 
