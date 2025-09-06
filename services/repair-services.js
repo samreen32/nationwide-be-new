@@ -1,63 +1,11 @@
+const sgMail = require("@sendgrid/mail");
+const path = require("path");
+const ejs = require("ejs");
 const Repair = require("../models/Repair");
 const User = require("../models/User");
-const nodemailer = require("nodemailer");
-const ejs = require("ejs");
-const path = require("path");
-require("dotenv").config();
 
-if (process.env.NODE_ENV !== 'production') {
-  require('dotenv').config();
-}
-
-console.log("Environment variables:", {
-  EMAIL_HOST: process.env.EMAIL_HOST,
-  EMAIL_PORT: process.env.EMAIL_PORT,
-  EMAIL_USER: process.env.EMAIL_USER,
-  NODE_ENV: process.env.NODE_ENV
-});
-
-// GoDaddy SMTP configuration
-const emailConfig = {
-  host: process.env.EMAIL_HOST || "smtp.office365.com",
-  port: parseInt(process.env.EMAIL_PORT) || 587,
-  secure: process.env.EMAIL_SECURE === "true",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-    ciphers: 'SSLv3',
-    rejectUnauthorized: false
-  },
-  connectionTimeout: 30000, // 30 seconds
-  greetingTimeout: 30000,   // 30 seconds
-  socketTimeout: 30000      // 30 seconds
-};
-
-console.log("GoDaddy Email configuration:", {
-  host: emailConfig.host,
-  port: emailConfig.port,
-  secure: emailConfig.secure,
-  user: emailConfig.auth.user
-});
-
-const transporter = nodemailer.createTransport(emailConfig);
-
-// Test SMTP connection
-async function testSMTPConnection() {
-  try {
-    await transporter.verify();
-    console.log('GoDaddy SMTP connection verified successfully');
-    return true;
-  } catch (error) {
-    console.error('GoDaddy SMTP connection failed:', error.message);
-    console.log('Trying alternative GoDaddy SMTP servers...');
-    return false;
-  }
-}
-
-// Initialize connection
-testSMTPConnection();
+// Initialize SendGrid with your API key
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 async function generateWorkOrderNumber(state) {
   const now = new Date();
@@ -77,28 +25,91 @@ async function generateWorkOrderNumber(state) {
 }
 
 async function sendInvoiceEmail(user, repair, workOrderNumber, currentDate) {
-  const templatePath = path.join(__dirname, "../templates/invoice.ejs");
-  const template = await ejs.renderFile(templatePath, {
-    user,
-    repair,
-    workOrderNumber,
-    currentDate,
-  });
-  const mailOptions = {
-    from: "support@nationwidelaptoprepair.com",
-    to: user.email,
-    subject: "Nationwide Laptop Repair - Your Workorder",
-    html: template,
-  };
-  await transporter.sendMail(mailOptions);
+  try {
+    const templatePath = path.join(__dirname, "../templates/invoice.ejs");
+    const template = await ejs.renderFile(templatePath, {
+      user,
+      repair,
+      workOrderNumber,
+      currentDate,
+    });
+
+    const msg = {
+      to: user.email,
+      from: {
+        email:
+          process.env.SENDGRID_FROM_EMAIL ||
+          "support@nationwidelaptoprepair.com",
+        name: process.env.SENDGRID_FROM_NAME || "Nationwide Laptop Repair",
+      },
+      subject: "Nationwide Laptop Repair - Your Workorder",
+      html: template,
+    };
+
+    await sgMail.send(msg);
+    console.log("Invoice email sent to:", user.email);
+  } catch (error) {
+    console.error("SendGrid error in sendInvoiceEmail:", error);
+    throw error; // Re-throw to handle in the calling function
+  }
+}
+
+async function sendUpdateInvoiceEmail(
+  user,
+  repair,
+  workOrderNumber,
+  currentDate,
+  status
+) {
+  try {
+    const templatePath = path.join(
+      __dirname,
+      "../templates/update_invoice.ejs"
+    );
+    const template = await ejs.renderFile(templatePath, {
+      user,
+      repair,
+      workOrderNumber,
+      currentDate,
+      status,
+    });
+
+    const msg = {
+      to: user.email,
+      from: {
+        email:
+          process.env.SENDGRID_FROM_EMAIL ||
+          "support@nationwidelaptoprepair.com",
+        name: process.env.SENDGRID_FROM_NAME || "Nationwide Laptop Repair",
+      },
+      subject: `Nationwide Laptop Repair - Workorder Update: ${status}`,
+      html: template,
+    };
+
+    await sgMail.send(msg);
+    console.log("Update email sent to:", user.email);
+  } catch (error) {
+    console.error("SendGrid error in sendUpdateInvoiceEmail:", error);
+    throw error;
+  }
 }
 
 async function registerForm(req, res) {
   try {
     const { user_list, form_list } = req.body;
+
+    // Validate email exists
+    if (!user_list?.email) {
+      return res.status(400).json({
+        status: 400,
+        message: "Email address is required",
+      });
+    }
+
     const existingUser = await User.findOne({
       "nation_users.email": user_list.email,
     });
+
     if (!existingUser) {
       const newUser = new User({
         nation_users: {
@@ -114,32 +125,94 @@ async function registerForm(req, res) {
       });
       await newUser.save();
     }
+
     const workOrderNumber = await generateWorkOrderNumber(user_list.state);
     const currentDate = new Date().toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
     });
+
     const newRepair = new Repair({
       user_list,
       form_list,
       workOrderNumber,
     });
+
     await newRepair.save();
+
+    // Send email
     await sendInvoiceEmail(user_list, form_list, workOrderNumber, currentDate);
+
     res.status(201).json({
       status: 201,
-      message: "Repair form submitted successfully",
+      message: "Repair form submitted successfully and email sent",
       data: newRepair,
     });
   } catch (error) {
     console.error("Error submitting repair form:", error);
+
+    // Check if it's a SendGrid error
+    if (error.response) {
+      console.error("SendGrid error details:", error.response.body);
+    }
+
     res.status(500).json({
       status: 500,
       message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 }
+
+async function updateRepairForm(req, res) {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const updatedRepair = await Repair.findByIdAndUpdate(id, updates, {
+      new: true,
+    });
+
+    if (!updatedRepair) {
+      return res.status(404).json({
+        status: 404,
+        message: "Repair form not found",
+      });
+    }
+
+    res.status(200).json({
+      status: 200,
+      message: "Repair form updated successfully",
+      data: updatedRepair,
+    });
+
+    // Send update email after response
+    const { user_list, form_list, workOrderNumber, status } = updatedRepair;
+    const currentDate = new Date().toLocaleDateString();
+
+    await sendUpdateInvoiceEmail(
+      user_list,
+      form_list,
+      workOrderNumber,
+      currentDate,
+      status
+    );
+  } catch (error) {
+    console.error("Error updating repair form:", error);
+
+    if (error.response) {
+      console.error("SendGrid error details:", error.response.body);
+    }
+
+    res.status(500).json({
+      status: 500,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+}
+
+// Keep your other functions (getAllRepairReports, deleteRepairForm, getRepairFormByWorkOrderNumber) as they are
 
 async function getAllRepairReports(req, res) {
   try {
@@ -177,66 +250,6 @@ async function getAllRepairReports(req, res) {
     });
   } catch (error) {
     console.error("Error fetching repair reports:", error);
-    res.status(500).json({
-      status: 500,
-      message: "Internal server error",
-    });
-  }
-}
-
-async function sendUpdateInvoiceEmail(
-  user,
-  repair,
-  workOrderNumber,
-  currentDate,
-  status
-) {
-  const templatePath = path.join(__dirname, "../templates/update_invoice.ejs");
-  const template = await ejs.renderFile(templatePath, {
-    user, // Pass the user object
-    repair, // Pass the repair object
-    workOrderNumber, // Pass the work order number
-    currentDate, // Pass the current date
-    status, // Pass the status
-  });
-  const mailOptions = {
-    from: "support@nationwidelaptoprepair.com",
-    to: user.email,
-    subject: "Nationwide Laptop Repair - Your Workorder",
-    html: template,
-  };
-  await transporter.sendMail(mailOptions);
-}
-
-async function updateRepairForm(req, res) {
-  try {
-    const { id } = req.params;
-    const updates = req.body;
-    const updatedRepair = await Repair.findByIdAndUpdate(id, updates, {
-      new: true,
-    });
-    if (!updatedRepair) {
-      return res.status(404).json({
-        status: 404,
-        message: "Repair form not found",
-      });
-    }
-    res.status(200).json({
-      status: 200,
-      message: "Repair form updated successfully",
-      data: updatedRepair,
-    });
-    const { user_list, form_list, workOrderNumber, status } = updatedRepair;
-    const currentDate = new Date().toLocaleDateString();
-    await sendUpdateInvoiceEmail(
-      user_list,
-      form_list,
-      workOrderNumber,
-      currentDate,
-      status
-    );
-  } catch (error) {
-    console.error("Error updating repair form:", error);
     res.status(500).json({
       status: 500,
       message: "Internal server error",
