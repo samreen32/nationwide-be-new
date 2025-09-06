@@ -5,31 +5,40 @@ const ejs = require("ejs");
 const path = require("path");
 require("dotenv").config();
 
-console.log("Environment variables:");
-console.log("EMAIL_HOST:", process.env.EMAIL_HOST);
-console.log("EMAIL_PORT:", process.env.EMAIL_PORT);
-console.log("EMAIL_USER:", process.env.EMAIL_USER);
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config();
+}
 
-// Email configuration - UPDATE THESE VALUES
+console.log("Environment variables:", {
+  EMAIL_HOST: process.env.EMAIL_HOST,
+  EMAIL_PORT: process.env.EMAIL_PORT,
+  EMAIL_USER: process.env.EMAIL_USER,
+  NODE_ENV: process.env.NODE_ENV
+});
+
+// GoDaddy SMTP configuration
 const emailConfig = {
   host: process.env.EMAIL_HOST || "smtp.office365.com",
   port: parseInt(process.env.EMAIL_PORT) || 587,
-  secure: process.env.EMAIL_SECURE === false,
+  secure: process.env.EMAIL_SECURE === "true",
   auth: {
-    user: process.env.EMAIL_USER || "support@nationwidelaptoprepair.com",
-    pass: process.env.EMAIL_PASS || "SupportAt2802$",
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
   tls: {
-    ciphers: process.env.EMAIL_CIPHERS || "SSLv3",
-    rejectUnauthorized: false,
+    ciphers: 'SSLv3',
+    rejectUnauthorized: false
   },
+  connectionTimeout: 30000, // 30 seconds
+  greetingTimeout: 30000,   // 30 seconds
+  socketTimeout: 30000      // 30 seconds
 };
 
-console.log("Final email configuration:", {
+console.log("GoDaddy Email configuration:", {
   host: emailConfig.host,
   port: emailConfig.port,
   secure: emailConfig.secure,
-  user: emailConfig.auth.user,
+  user: emailConfig.auth.user
 });
 
 const transporter = nodemailer.createTransport(emailConfig);
@@ -38,29 +47,16 @@ const transporter = nodemailer.createTransport(emailConfig);
 async function testSMTPConnection() {
   try {
     await transporter.verify();
-    console.log("SMTP connection verified successfully");
+    console.log('GoDaddy SMTP connection verified successfully');
     return true;
   } catch (error) {
-    console.error("SMTP connection failed:", error.message);
-
-    // Provide specific troubleshooting advice based on error
-    if (error.code === "EAUTH") {
-      console.error("Authentication failed. Please check:");
-      console.error("1. Your email username and password in .env file");
-      console.error("2. That your email account is active and not locked");
-      console.error("3. If you need to use an app-specific password");
-    } else if (error.code === "ECONNECTION") {
-      console.error("Connection failed. Please check:");
-      console.error("1. Your SMTP host and port settings");
-      console.error("2. Your internet connection");
-      console.error("3. Firewall settings that might block SMTP");
-    }
-
+    console.error('GoDaddy SMTP connection failed:', error.message);
+    console.log('Trying alternative GoDaddy SMTP servers...');
     return false;
   }
 }
 
-// Initialize and test connection
+// Initialize connection
 testSMTPConnection();
 
 async function generateWorkOrderNumber(state) {
