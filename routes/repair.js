@@ -5,7 +5,6 @@ const {
   updateRepairForm,
   deleteRepairForm,
   getRepairFormByWorkOrderNumber,
-  sendRepairEmail,
 } = require("../services/repair-services");
 const validateRequest = require("../middleware/validateRequest");
 const { insertUserInfoValidationRules } = require("../validator/bodyValidator");
@@ -14,17 +13,10 @@ const router = express.Router();
 // register form
 router.post(
   "/register-form",
-  insertUserInfoValidationRules,
+  // insertUserInfoValidationRules,
   validateRequest,
   registerForm
 );
-
-// router.post(
-//   "/testing-register",
-//   // insertUserInfoValidationRules,
-//   // validateRequest,
-//   sendRepairEmail
-// );
 
 router.get("/repair-reports", getAllRepairReports);
 

@@ -46,7 +46,7 @@ async function getUserDetails(req, res) {
       model: repair.form_list.model,
       serialNum: repair.form_list.serialNum,
       modalImage: repair.form_list.modelImage,
-      description: repair.form_list.description,
+      description: repair.form_list.description || '',
       workOrderNumber: repair.workOrderNumber,
       status: repair.status,
       date: repair.date,
