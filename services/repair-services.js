@@ -14,7 +14,7 @@ console.log("EMAIL_USER:", process.env.EMAIL_USER);
 const emailConfig = {
   host: process.env.EMAIL_HOST || "smtp.office365.com",
   port: parseInt(process.env.EMAIL_PORT) || 587,
-  secure: process.env.EMAIL_SECURE === "true",
+  secure: process.env.EMAIL_SECURE === false,
   auth: {
     user: process.env.EMAIL_USER || "support@nationwidelaptoprepair.com",
     pass: process.env.EMAIL_PASS || "SupportAt2802$",
